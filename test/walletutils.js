@@ -5,7 +5,7 @@ var Uuid = require('uuid');
 var chai = require('chai');
 var sinon = require('sinon');
 var should = chai.should();
-var Bitcore = require('bitcore');
+var Bitcore = require('bitcore-lib');
 var WalletUtils = require('../lib/walletutils');
 
 var aText = 'hola';
@@ -33,7 +33,7 @@ helpers.toSatoshi = function(btc) {
 
 helpers.strip = function(number) {
   return (parseFloat(number.toPrecision(12)));
-}
+};
 
 // Amounts in satoshis
 helpers.generateUtxos = function(scriptType, publicKeyRing, path, requiredSignatures, amounts) {
