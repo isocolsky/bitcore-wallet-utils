@@ -19,6 +19,7 @@ var masterPrivateKey = 'tprv8ZgxMBicQKsPdPLE72pfSo7CvzTsWddGHdwSuMNrcerr8yQZKdaP
 var derivedPrivateKey = {
   'BIP44': WalletUtils.deriveXPrivFromMaster(masterPrivateKey, 'BIP44', 'testnet'),
   'BIP45': WalletUtils.deriveXPrivFromMaster(masterPrivateKey, 'BIP45', 'testnet'),
+  'BIP48': WalletUtils.deriveXPrivFromMaster(masterPrivateKey, 'BIP48', 'testnet'),
 };
 
 var helpers = {};
@@ -118,12 +119,14 @@ describe('WalletUtils', function() {
         WalletUtils.getBaseAddressDerivationPath('BIP45').should.equal("m/45'");
       });
     });
-    describe('BIP44', function() {
+    describe('BIP44 & BIP48', function() {
       it('should return path for livenet, account 0', function() {
         WalletUtils.getBaseAddressDerivationPath('BIP44', 'livenet', 0).should.equal("m/44'/0'/0'");
+        WalletUtils.getBaseAddressDerivationPath('BIP48', 'livenet', 0).should.equal("m/48'/0'/0'");
       });
       it('should return path for testnet, account 2', function() {
         WalletUtils.getBaseAddressDerivationPath('BIP44', 'testnet', 2).should.equal("m/44'/1'/2'");
+        WalletUtils.getBaseAddressDerivationPath('BIP48', 'testnet', 2).should.equal("m/48'/1'/2'");
       });
       it('should fail on incorrect network', function() {
         (function() {
@@ -159,6 +162,14 @@ describe('WalletUtils', function() {
     it('should derive BIP44 testnet', function() {
       var xpriv = WalletUtils.deriveXPrivFromMaster('tprv8ZgxMBicQKsPfPX8avSJXY1tZYJJESNg8vR88i8rJFkQJm6HgPPtDEmD36NLVSJWV5ieejVCK62NdggXmfMEHog598PxvXuLEsWgE6tKdwz', 'BIP44', 'testnet').toString();
       xpriv.should.equal('tprv8gBu8N7JbHZs7MsW4kgE8LAYMhGJES9JP6DHsj2gw9Tc5PrF5Grr9ynAZkH1LyWsxjaAyCuEMFKTKhzdSaykpqzUnmEhpLsxfujWHA66N93');
+    });
+    it('should derive BIP48 livenet', function() {
+      var xpriv = WalletUtils.deriveXPrivFromMaster('xprv9s21ZrQH143K3zLpjtB4J4yrRfDTEfbrMa9vLZaTAv5BzASwBmA16mdBmZKpMLssw1AzTnm31HAD2pk2bsnZ9dccxaLD48mRdhtw82XoiBi', 'BIP48', 'livenet').toString();
+      xpriv.should.equal('xprv9yaGCLKPS2ovEGw987MZr4DCkfZHGh518ndVk3Jb6eiUdPwCQu7nYru59WoNkTEQvmhnv5sPbYxeuee5k8QASWRnGV2iFX4RmKXEQse8KnQ');
+    });
+    it('should derive BIP48 testnet', function() {
+      var xpriv = WalletUtils.deriveXPrivFromMaster('tprv8ZgxMBicQKsPfPX8avSJXY1tZYJJESNg8vR88i8rJFkQJm6HgPPtDEmD36NLVSJWV5ieejVCK62NdggXmfMEHog598PxvXuLEsWgE6tKdwz', 'BIP48', 'testnet').toString();
+      xpriv.should.equal('tprv8fxVAtZafDKp6aVbrPpYaCSpyiQ7T5xhBTwwYbNcA5Tz1H9qDok42a6EfdMFf6i3Uiiq9o1pficZyJarYrwJvMwZLbF1hZ784WhiHVjHj8k');
     });
   });
 
@@ -303,7 +314,7 @@ describe('WalletUtils', function() {
   });
 
   describe('#buildTx', function() {
-    it('should build a tx correctly', function() {
+    it('should build a tx correctly (BIP44)', function() {
       var toAddress = 'msj42CCGruhRsFrGATiUuh25dtxYtnpbTx';
       var changeAddress = 'msj42CCGruhRsFrGATiUuh25dtxYtnpbTx';
 
@@ -324,6 +335,39 @@ describe('WalletUtils', function() {
         outputOrder: [0, 1],
         fee: 10050,
         derivationStrategy: 'BIP44',
+        addressType: 'P2PKH',
+      };
+      var t = WalletUtils.buildTx(txp);
+      var bitcoreError = t.getSerializationError({
+        disableIsFullySigned: true,
+        disableSmallFees: true,
+        disableLargeFees: true,
+      });
+
+      should.not.exist(bitcoreError);
+      t.getFee().should.equal(10050);
+    });
+    it('should build a tx correctly (BIP48)', function() {
+      var toAddress = 'msj42CCGruhRsFrGATiUuh25dtxYtnpbTx';
+      var changeAddress = 'msj42CCGruhRsFrGATiUuh25dtxYtnpbTx';
+
+      var publicKeyRing = [{
+        xPubKey: new Bitcore.HDPublicKey(derivedPrivateKey['BIP48']),
+      }];
+
+      var utxos = helpers.generateUtxos('P2PKH', publicKeyRing, 'm/1/0', 1, [1000, 2000]);
+      var txp = {
+        version: '2.0.0',
+        inputs: utxos,
+        toAddress: toAddress,
+        amount: 1200,
+        changeAddress: {
+          address: changeAddress
+        },
+        requiredSignatures: 1,
+        outputOrder: [0, 1],
+        fee: 10050,
+        derivationStrategy: 'BIP48',
         addressType: 'P2PKH',
       };
       var t = WalletUtils.buildTx(txp);
